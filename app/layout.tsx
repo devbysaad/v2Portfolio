@@ -32,6 +32,10 @@ export const metadata: Metadata = {
     'Full-stack developer. Unapologetically functional, obsessively refined. 3+ years building React, Next.js, Node.js, TypeScript & PostgreSQL applications.',
   keywords: ['Full Stack Developer', 'React', 'Next.js', 'TypeScript', 'Node.js', 'Muhammad Saad'],
   authors: [{ name: 'Muhammad Saad' }],
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
   openGraph: {
     title: 'Muhammad Saad — Full Stack Engineer',
     description: 'Full-stack developer. Unapologetically functional, obsessively refined.',
