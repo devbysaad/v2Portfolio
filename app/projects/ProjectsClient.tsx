@@ -76,7 +76,6 @@ function ProjectCard({ p, index }: { p: Project; index: number }) {
 
   return (
     <div
-      ref={cardRef}
       className="group relative"
       style={{ opacity: 1 }}
     >

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import type { Project } from '@prisma/client'
 import gsap from 'gsap'
@@ -31,7 +31,56 @@ function EmptyState() {
 }
 
 function ProjectCard({ project, flex }: { project: Project; flex: string }) {
+  const imageRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const cursorDotRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ x: 0, y: 0 })
   const initials = (project.title ?? 'PR').slice(0, 2).toUpperCase()
+
+  const onEnter = useCallback(() => {
+    gsap.to(panelRef.current, { opacity: 1, y: 0, duration: 0.28, ease: 'power3.out' })
+    gsap.to(cursorDotRef.current, { opacity: 1, scale: 1, duration: 0.22 })
+  }, [])
+
+  const onLeave = useCallback(() => {
+    gsap.to(panelRef.current, { opacity: 0, y: 8, duration: 0.2 })
+    gsap.to(cursorDotRef.current, { opacity: 0, scale: 0.4, duration: 0.18 })
+  }, [])
+
+  const onMove = useCallback((e: MouseEvent) => {
+    const rect = imageRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const rx = e.clientX - rect.left
+    const ry = e.clientY - rect.top
+    setPos({ x: rx, y: ry })
+    gsap.set(cursorDotRef.current, { x: rx, y: ry })
+  }, [])
+
+  useEffect(() => {
+    const el = imageRef.current
+    if (!el) return
+    el.addEventListener('mouseenter', onEnter)
+    el.addEventListener('mouseleave', onLeave)
+    el.addEventListener('mousemove', onMove as EventListener)
+    return () => {
+      el.removeEventListener('mouseenter', onEnter)
+      el.removeEventListener('mouseleave', onLeave)
+      el.removeEventListener('mousemove', onMove as EventListener)
+    }
+  }, [onEnter, onLeave, onMove])
+
+  const panelW = 280
+  const panelH = 160
+  const offset = 14
+  const imgW = imageRef.current?.clientWidth ?? 600
+  const imgH = imageRef.current?.clientHeight ?? 340
+  let px = pos.x + offset
+  let py = pos.y + offset
+  if (px + panelW > imgW) px = pos.x - panelW - offset
+  if (py + panelH > imgH) py = pos.y - panelH - offset
+  if (px < 4) px = 4
+  if (py < 4) py = 4
+
   return (
     <div
       className="group border-t-2 border-[#f0f0f0]/15 hover:border-[#c8a840]/50 transition-colors duration-200 pt-3 flex flex-col gap-2 min-w-0"
@@ -39,7 +88,8 @@ function ProjectCard({ project, flex }: { project: Project; flex: string }) {
     >
       {/* Image */}
       <div
-        className="w-full overflow-hidden bg-[#111] border border-[#1e1e1e] group-hover:border-[#c8a840]/20 transition-colors"
+        ref={imageRef}
+        className="relative w-full overflow-hidden bg-[#111] border border-[#1e1e1e] cursor-none group-hover:border-[#c8a840]/20 transition-colors"
         style={{ aspectRatio: '16/10' }}
       >
         {project.imageUrl ? (
@@ -56,6 +106,57 @@ function ProjectCard({ project, flex }: { project: Project; flex: string }) {
             >{initials}</span>
           </div>
         )}
+
+        <div className="absolute inset-0 bg-[#0c0c0c]/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+        <div
+          ref={cursorDotRef}
+          className="absolute pointer-events-none z-20 opacity-0 scale-[0.4]"
+          style={{ top: 0, left: 0, transform: 'translate(-50%, -50%)' }}
+        >
+          <svg width="52" height="52" viewBox="0 0 52 52" style={{ animation: 'rotate-ring 7s linear infinite' }}>
+            <defs>
+              <path id={`cp-${project.id}`} d="M 26,26 m -22,0 a 22,22 0 1,1 44,0 a 22,22 0 1,1 -44,0" />
+            </defs>
+            <text fill="#c8a840" fontSize="5.5" letterSpacing="2.5" fontFamily="var(--font-spacemono, monospace)">
+              <textPath href={`#cp-${project.id}`}>VIEW · PROJECT · DETAILS ·</textPath>
+            </text>
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#c8a840]" />
+          </div>
+        </div>
+
+        <div
+          ref={panelRef}
+          className="absolute z-30 pointer-events-none opacity-0"
+          style={{ top: py, left: px, width: panelW, transform: 'translateY(8px)' }}
+        >
+          <div className="bg-[#0c0c0c]/95 border border-[#c8a840]/40 p-3 backdrop-blur-sm">
+            <p className="text-[#c8a840] text-[7px] tracking-[0.3em] uppercase mb-1.5" style={{ fontFamily: 'var(--font-spacemono)' }}>
+              ◆ PROJECT DETAILS
+            </p>
+            <p className="text-white text-sm leading-tight mb-1.5" style={{ fontFamily: 'var(--font-anton)' }}>
+              {project.title}
+            </p>
+            {project.description && (
+              <p className="text-[#f0ede8]/50 text-[9px] leading-snug italic mb-2 line-clamp-2" style={{ fontFamily: 'var(--font-baskerville)' }}>
+                {project.description}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-1 mb-2">
+              {(project.techStack ?? []).slice(0, 4).map((t) => (
+                <span key={t} className="px-1.5 py-0.5 border border-[#c8a840]/20 text-[#c8a840]/70 text-[7px] tracking-[0.1em] uppercase" style={{ fontFamily: 'var(--font-spacemono)' }}>
+                  {t}
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-3 pointer-events-none">
+              {project.githubUrl && <span className="text-[8px] text-[#f0ede8]/30 uppercase tracking-wider" style={{ fontFamily: 'var(--font-spacemono)' }}>GH ↗</span>}
+              {project.liveUrl && <span className="text-[8px] text-[#c8a840] uppercase tracking-wider" style={{ fontFamily: 'var(--font-spacemono)' }}>LIVE ↗</span>}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Title */}

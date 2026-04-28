@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma'
+import { getExperiences } from '@/app/actions/experience'
 import Link from 'next/link'
 import Navigation from '@/components/Navigation'
 import { ArrowLeft, ArrowRight, Mail, Linkedin, Github, MapPin, Calendar, Briefcase, GraduationCap } from 'lucide-react'
@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, Mail, Linkedin, Github, MapPin, Calendar, Briefc
 export const revalidate = 60
 
 export default async function AboutPage() {
-    const experiences = await prisma.experience.findMany({ orderBy: { startDate: 'desc' } })
+    const experiences = await getExperiences()
     const workExperience = experiences.filter((exp) => exp.type === 'work' || exp.type === 'Work')
     const education = experiences.filter((exp) => exp.type === 'education' || exp.type === 'Education')
 

@@ -12,7 +12,7 @@ export const revalidate = 3600
 async function getSkills(): Promise<Skill[]> {
   try {
     const prisma = (await import('@/lib/prisma')).default
-    return prisma.skill.findMany({ orderBy: [{ order: 'asc' }, { category: 'asc' }] })
+    return await prisma.skill.findMany({ orderBy: [{ order: 'asc' }, { category: 'asc' }] })
   } catch { return [] }
 }
 

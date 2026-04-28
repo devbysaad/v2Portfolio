@@ -5,6 +5,7 @@ import {
   localGetProjects, localCreateProject, localUpdateProject,
   localDeleteProject, localGetProjectById,
 } from '@/lib/local-storage'
+import { getOptionalEnv } from '@/lib/env'
 
 // ── DB guard: throws immediately if DB not configured ─────────────────────────
 const DB_URL = process.env.DATABASE_URL ?? ''
@@ -13,6 +14,7 @@ const HAS_DB = DB_URL.length > 0 &&
   !DB_URL.includes('your-') &&
   !DB_URL.includes('YOUR-PASSWORD') &&
   !DB_URL.includes('HOST')
+const CLOUDINARY_CLOUD_NAME = getOptionalEnv('CLOUDINARY_CLOUD_NAME')
 
 async function db() {
   if (!HAS_DB) throw new Error('no-db')
@@ -22,6 +24,24 @@ async function db() {
 
 function parseTech(val: FormData['get']) {
   return String(val ?? '').split(',').map(s => s.trim()).filter(Boolean)
+}
+
+function normalizeImageUrl(value: FormDataEntryValue | null): string | null {
+  const raw = String(value ?? '').trim()
+  if (!raw) return null
+  if (raw.startsWith('/')) return null
+
+  try {
+    const parsed = new URL(raw)
+    const isCloudinary = parsed.hostname === 'res.cloudinary.com'
+    if (!isCloudinary) return null
+    if (CLOUDINARY_CLOUD_NAME && !parsed.pathname.startsWith(`/${CLOUDINARY_CLOUD_NAME}/`)) {
+      return null
+    }
+    return parsed.toString()
+  } catch {
+    return null
+  }
 }
 
 // ── Read ──────────────────────────────────────────────────────────────────────
@@ -51,7 +71,7 @@ export async function createProject(formData: FormData) {
     techStack:   parseTech(formData.get('techStack')),
     githubUrl:   formData.get('githubUrl') as string || null,
     liveUrl:     formData.get('liveUrl') as string || null,
-    imageUrl:    formData.get('imageUrl') as string || null,
+    imageUrl:    normalizeImageUrl(formData.get('imageUrl')),
     featured:    formData.get('featured') === 'on',
     order:       parseInt(formData.get('order') as string) || 0,
   }
@@ -72,7 +92,7 @@ export async function updateProject(id: string, formData: FormData) {
     techStack:   parseTech(formData.get('techStack')),
     githubUrl:   formData.get('githubUrl') as string || null,
     liveUrl:     formData.get('liveUrl') as string || null,
-    imageUrl:    formData.get('imageUrl') as string || null,
+    imageUrl:    normalizeImageUrl(formData.get('imageUrl')),
     featured:    formData.get('featured') === 'on',
     order:       parseInt(formData.get('order') as string) || 0,
   }

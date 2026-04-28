@@ -15,7 +15,12 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      allowedOrigins: ['localhost:3000', '*.vercel.app'],
+      // Allow localhost + any Vercel or custom domain
+      allowedOrigins: [
+        'localhost:3000',
+        'v2portfolio.vercel.app',
+        '*.vercel.app',
+      ].filter(Boolean),
     },
   },
 }

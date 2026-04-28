@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { Skill } from '@prisma/client'
@@ -52,6 +52,97 @@ const ROW_CONFIG = [
 ]
 
 interface Props { skills: Skill[] }
+
+function HoverTechPill({ skill }: { skill: Skill }) {
+  const hoverRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const cursorDotRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ x: 0, y: 0 })
+
+  const onEnter = useCallback(() => {
+    gsap.to(panelRef.current, { opacity: 1, y: 0, duration: 0.24, ease: 'power3.out' })
+    gsap.to(cursorDotRef.current, { opacity: 1, scale: 1, duration: 0.2 })
+  }, [])
+
+  const onLeave = useCallback(() => {
+    gsap.to(panelRef.current, { opacity: 0, y: 8, duration: 0.18 })
+    gsap.to(cursorDotRef.current, { opacity: 0, scale: 0.4, duration: 0.16 })
+  }, [])
+
+  const onMove = useCallback((e: MouseEvent) => {
+    const rect = hoverRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const rx = e.clientX - rect.left
+    const ry = e.clientY - rect.top
+    setPos({ x: rx, y: ry })
+    gsap.set(cursorDotRef.current, { x: rx, y: ry })
+  }, [])
+
+  useEffect(() => {
+    const el = hoverRef.current
+    if (!el) return
+    el.addEventListener('mouseenter', onEnter)
+    el.addEventListener('mouseleave', onLeave)
+    el.addEventListener('mousemove', onMove as EventListener)
+    return () => {
+      el.removeEventListener('mouseenter', onEnter)
+      el.removeEventListener('mouseleave', onLeave)
+      el.removeEventListener('mousemove', onMove as EventListener)
+    }
+  }, [onEnter, onLeave, onMove])
+
+  const panelW = 220
+  const panelH = 90
+  const offset = 10
+  const boxW = hoverRef.current?.clientWidth ?? 220
+  const boxH = hoverRef.current?.clientHeight ?? 60
+  let px = pos.x + offset
+  let py = pos.y + offset
+  if (px + panelW > boxW) px = pos.x - panelW - offset
+  if (py + panelH > boxH) py = pos.y - panelH - offset
+  if (px < 4) px = 4
+  if (py < 4) py = 4
+
+  return (
+    <div ref={hoverRef} className="relative tech-pill text-[#f0ede8] cursor-none">
+      <span className="text-[#c8a840] text-xs">{TECH_ICONS[skill.name] ?? '◆'}</span>
+      {skill.name}
+
+      <div
+        ref={cursorDotRef}
+        className="absolute pointer-events-none z-20 opacity-0 scale-[0.4]"
+        style={{ top: 0, left: 0, transform: 'translate(-50%, -50%)' }}
+      >
+        <svg width="42" height="42" viewBox="0 0 52 52" style={{ animation: 'rotate-ring 7s linear infinite' }}>
+          <defs>
+            <path id={`tech-${skill.id}`} d="M 26,26 m -22,0 a 22,22 0 1,1 44,0 a 22,22 0 1,1 -44,0" />
+          </defs>
+          <text fill="#c8a840" fontSize="5.5" letterSpacing="2.5" fontFamily="var(--font-spacemono, monospace)">
+            <textPath href={`#tech-${skill.id}`}>VIEW · TECH · DETAILS ·</textPath>
+          </text>
+        </svg>
+      </div>
+
+      <div
+        ref={panelRef}
+        className="absolute z-30 pointer-events-none opacity-0"
+        style={{ top: py, left: px, width: panelW, transform: 'translateY(8px)' }}
+      >
+        <div className="bg-[#0c0c0c]/95 border border-[#c8a840]/40 p-2 backdrop-blur-sm">
+          <p className="text-[#c8a840] text-[7px] tracking-[0.25em] uppercase mb-1" style={{ fontFamily: 'var(--font-spacemono)' }}>
+            ◆ TECHNOLOGY
+          </p>
+          <p className="text-white text-xs leading-tight" style={{ fontFamily: 'var(--font-anton)' }}>
+            {skill.name}
+          </p>
+          <p className="text-[#f0ede8]/50 text-[8px] italic mt-1" style={{ fontFamily: 'var(--font-baskerville)' }}>
+            {skill.category}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function TechSection({ skills }: Props) {
   const sectionRef = useRef<HTMLDivElement>(null)
@@ -119,10 +210,7 @@ export default function TechSection({ skills }: Props) {
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {items.map(skill => (
-                    <div key={skill.id} className="tech-pill text-[#f0ede8]">
-                      <span className="text-[#c8a840] text-xs">{TECH_ICONS[skill.name] ?? '◆'}</span>
-                      {skill.name}
-                    </div>
+                    <HoverTechPill key={skill.id} skill={skill} />
                   ))}
                   {items.length === 0 && (
                     <span

@@ -1,11 +1,9 @@
 import { cookies } from 'next/headers'
-import prisma from './prisma'
 
 // ── Token-based dashboard auth ─────────────────────────────────────────────
 export function validateDashboardToken(token: string): boolean {
   const expected = process.env.DASHBOARD_TOKEN
   if (!expected || !token) return false
-  // Constant-time compare
   if (token.length !== expected.length) return false
   let diff = 0
   for (let i = 0; i < token.length; i++) {
@@ -14,24 +12,24 @@ export function validateDashboardToken(token: string): boolean {
   return diff === 0
 }
 
-// ── Legacy session-based auth (kept for backward compat) ───────────────────
-export async function getSession() {
-  const cookieStore = await cookies()
-  const sessionToken = cookieStore.get('session-token')
-  if (!sessionToken) return null
+// ── Cookie-based dashboard session check ──────────────────────────────────
+export async function isDashboardAuthenticated(): Promise<boolean> {
   try {
-    const user = await prisma.user.findFirst({
-      where: { email: { contains: '@' } },
-      select: { id: true, email: true, name: true, role: true },
-    })
-    return user
+    const cookieStore = await cookies()
+    const auth = cookieStore.get('dashboard-auth')
+    return auth?.value === 'verified'
   } catch {
-    return null
+    return false
   }
 }
 
+// ── Legacy session (no longer used — keeping for compat) ──────────────────
+export async function getSession() {
+  return null
+}
+
 export async function requireAuth() {
-  const user = await getSession()
-  if (!user) throw new Error('Unauthorized')
-  return user
+  const authed = await isDashboardAuthenticated()
+  if (!authed) throw new Error('Unauthorized')
+  return { role: 'admin' }
 }
