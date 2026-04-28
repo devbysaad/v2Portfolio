@@ -11,6 +11,7 @@ const DB_URL = process.env.DATABASE_URL ?? ''
 const HAS_DB = DB_URL.length > 0 &&
   !DB_URL.includes('USER:PASSWORD') &&
   !DB_URL.includes('your-') &&
+  !DB_URL.includes('YOUR-PASSWORD') &&
   !DB_URL.includes('HOST')
 
 async function db() {

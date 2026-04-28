@@ -20,21 +20,18 @@ interface Project {
 
 // ── Per-card hover panel (like hero cursor) ───────────────────────────────────
 function ProjectCard({ p, index }: { p: Project; index: number }) {
-  const cardRef      = useRef<HTMLDivElement>(null)
   const imageRef     = useRef<HTMLDivElement>(null)
   const panelRef     = useRef<HTMLDivElement>(null)
   const cursorDotRef = useRef<HTMLDivElement>(null)
-  const [hovered, setHovered]  = useState(false)
-  const [pos, setPos]          = useState({ x: 0, y: 0 })
+  const [pos, setPos] = useState({ x: 0, y: 0 })
+
 
   const onEnter = useCallback(() => {
-    setHovered(true)
     gsap.to(panelRef.current,     { opacity: 1, y: 0,    duration: 0.28, ease: 'power3.out' })
     gsap.to(cursorDotRef.current, { opacity: 1, scale: 1, duration: 0.22 })
   }, [])
 
   const onLeave = useCallback(() => {
-    setHovered(false)
     gsap.to(panelRef.current,     { opacity: 0, y: 8,    duration: 0.2 })
     gsap.to(cursorDotRef.current, { opacity: 0, scale: 0.4, duration: 0.18 })
   }, [])
